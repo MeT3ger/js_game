@@ -15,7 +15,7 @@ services:
       dockerfile: Dockerfile
       args:
         UID: 506
-        GID: 20
+        GID: 1
         # если у вас линукс укажите здесь UID своего пользователя
         # можно узнать командой id -u  и  id -g
     working_dir: /home/node/app
