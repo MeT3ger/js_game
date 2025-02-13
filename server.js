@@ -117,7 +117,7 @@ function spawnMelons() {
     console.log('Сгенерированные рубины:', melons);
 }
 
-server.listen(8002, () => {
+server.listen(8001, () => {
     console.log('Сервер запущен на http://localhost:8001');
 });
 
