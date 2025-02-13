@@ -8,6 +8,7 @@ const server = http.createServer(app);
 const io = socketIo(server);
 
 const melonsCount = 39
+const sleepTime = 20000
 
 app.use(express.static('public'));
 
@@ -34,7 +35,7 @@ io.on('connection', async (socket) => {
         gameStarted = true;
         console.log('Начинаем игру! Генерация рубинов...');
         spawnMelons();
-        await sleep(2000); // Пауза на 2 секунды перед отправкой рубинов
+        await sleep(sleepTime); // Пауза на 2 секунды перед отправкой рубинов
         io.emit('melons', melons); // Отправляем список рубинов всем игрокам
         io.emit('startCountdown'); // Начинаем обратный отсчет для всех клиентов
         setTimeout(() => {
