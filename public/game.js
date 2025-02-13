@@ -22,7 +22,7 @@ let cursors;
 let otherPlayers = {};
 let scoreText;
 let background;
-let rubiesGroup;
+let melonsGroup;
 let gameStarted = false; // Флаг для блокировки движения
 
 const game = new Phaser.Game(config);
@@ -58,7 +58,7 @@ function create() {
         fill: '#fff',
     }).setOrigin(0.5, 0.5);
 
-    rubiesGroup = this.physics.add.group();
+    melonsGroup = this.physics.add.group();
 
     // Обработка списка игроков
     socket.on('players', (players) => {
@@ -83,13 +83,13 @@ function create() {
     });
 
     // Обработка списка рубинов
-    socket.on('rubies', (rubiesData) => {
-        rubiesGroup.clear(true, true); // Очищаем текущие рубины
-        for (const rubyId in rubiesData) {
-            const ruby = rubiesData[rubyId];
-            rubiesGroup.create(ruby.x, ruby.y, 'object').setData('id', rubyId);
+    socket.on('melons', (melonsData) => {
+        melonsGroup.clear(true, true); // Очищаем текущие рубины
+        for (const melonId in melonsData) {
+            const melon = melonsData[melonId];
+            melonsGroup.create(melon.x, melon.y, 'object').setData('id', melonId);
         }
-        this.physics.add.overlap(player, rubiesGroup, collectRuby, null, this);
+        this.physics.add.overlap(player, melonsGroup, collectMelon, null, this);
     });
 
     // Обработка окончания игры
@@ -154,8 +154,8 @@ function startCountdown(sceneInstance) {
     });
 }
 
-function collectRuby(_, ruby) {
-    const rubyId = ruby.getData('id');
-    socket.emit('collectRuby', rubyId); // Уведомляем сервер о сборе рубина
-    ruby.destroy(); // Удаляем рубин с клиента
+function collectMelon(_, melon) {
+    const melonId = melon.getData('id');
+    socket.emit('collectMelon', melonId); // Уведомляем сервер о сборе рубина
+    melon.destroy(); // Удаляем рубин с клиента
 }

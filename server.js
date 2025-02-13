@@ -12,7 +12,7 @@ const melonsCount = 39
 app.use(express.static('public'));
 
 let players = {};
-let rubies = {}; // Общие рубины для всех игроков
+let melons = {}; // Общие рубины для всех игроков
 let gameStarted = false; // Флаг для начала игры
 
 io.on('connection', async (socket) => {
@@ -33,9 +33,9 @@ io.on('connection', async (socket) => {
     if (Object.keys(players).length === 2 && !gameStarted) {
         gameStarted = true;
         console.log('Начинаем игру! Генерация рубинов...');
-        spawnRubies();
+        spawnMelons();
         await sleep(2000); // Пауза на 2 секунды перед отправкой рубинов
-        io.emit('rubies', rubies); // Отправляем список рубинов всем игрокам
+        io.emit('melons', melons); // Отправляем список рубинов всем игрокам
         io.emit('startCountdown'); // Начинаем обратный отсчет для всех клиентов
         setTimeout(() => {
             io.emit('startGame'); // Разрешаем движение после таймера
@@ -50,17 +50,17 @@ io.on('connection', async (socket) => {
         }
     });
 
-    socket.on('collectRuby', (rubyId) => {
-        if (rubies[rubyId]) {
-            delete rubies[rubyId]; // Удаляем рубин
+    socket.on('collectMelon', (melonId) => {
+        if (melons[melonId]) {
+            delete melons[melonId]; // Удаляем рубин
             players[socket.id].score += 10; // Увеличиваем счет игрока
 
             // Отправляем обновленный список рубинов и игроков
             io.emit('players', players);
-            io.emit('rubies', rubies);
+            io.emit('melons', melons);
     
             // Проверяем, остались ли рубины
-            if (Object.keys(rubies).length === 0) {
+            if (Object.keys(melons).length === 0) {
                 const winnerIdByScore = findWinnerByScore(players); // Находим победителя по очкам
                 console.log(`Игрок ${winnerIdByScore} победил!`);
     
@@ -74,7 +74,7 @@ io.on('connection', async (socket) => {
             } else {
                 // Отправляем обновленный список рубинов и игроков
                 io.emit('players', players);
-                io.emit('rubies', rubies);
+                io.emit('melons', melons);
             }
         }
     });
@@ -98,22 +98,22 @@ io.on('connection', async (socket) => {
         io.emit('players', players);
         if (Object.keys(players).length < 2) {
             gameStarted = false;
-            rubies = {}; // Очищаем рубины
-            io.emit('rubies', rubies); // Уведомляем клиентов об очистке рубинов
+            melons = {}; // Очищаем рубины
+            io.emit('melons', melons); // Уведомляем клиентов об очистке рубинов
         }
     });
 });
 
-function spawnRubies() {
+function spawnMelons() {
     for (let i = 0; i < melonsCount; i++) {
-        const rubyId = uuidv4(); // Генерируем уникальный ID для рубина
-        rubies[rubyId] = {
-            id: rubyId,
+        const melonId = uuidv4(); // Генерируем уникальный ID для рубина
+        melons[melonId] = {
+            id: melonId,
             x: Math.floor(Math.random() * (750 - 50 + 1)) + 50, // Случайная позиция по X
             y: Math.floor(Math.random() * (400 - 50 + 1)) + 50, // Случайная позиция по Y
         };
     }
-    console.log('Сгенерированные рубины:', rubies);
+    console.log('Сгенерированные рубины:', melons);
 }
 
 server.listen(8002, () => {
