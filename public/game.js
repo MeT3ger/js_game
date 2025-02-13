@@ -33,33 +33,52 @@ function preload() {
     this.load.image('sky', 'https://labs.phaser.io/assets/skies/sky1.png');
 }
 
+let playerNickText; // Текст с ником текущего игрока
+let otherPlayersNickTexts = {}; // Тексты с никами других игроков
+
 function create() {
     background = this.add.image(400, 300, 'sky');
     background.setDisplaySize(this.sys.game.config.width, this.sys.game.config.height);
     cursors = this.input.keyboard.createCursorKeys();
     player = this.physics.add.sprite(400, 500, 'player').setCollideWorldBounds(true);
-    scoreText = this.add.text(16, 16, 'Счет: 0', {
+
+    // Создаем текст с ником текущего игрока в углу экрана
+    playerNickText = this.add.text(16, 16, '', {
+        fontSize: '24px',
+        fill: '#fff',
+    });
+
+    scoreText = this.add.text(350, 16, 'Счет: 0', {
         fontSize: '32px',
         fill: '#fff',
     });
+
     countdownText = this.add.text(400, 300, '', {
         fontSize: '64px',
         fill: '#fff',
     }).setOrigin(0.5, 0.5);
+
     rubiesGroup = this.physics.add.group();
 
     // Обработка списка игроков
     socket.on('players', (players) => {
         for (const id in players) {
-            if (id === socket.id) continue;
-            if (!otherPlayers[id]) {
-                otherPlayers[id] = this.physics.add.sprite(players[id].x, players[id].y, 'player');
+            if (id === socket.id) {
+                // Устанавливаем ник текущего игрока
+                playerNickText.setText(`Вы: ${players[id].nick}`);
+                scoreText.setText(`Счет: ${players[id].score}`);
             } else {
-                otherPlayers[id].setPosition(players[id].x, players[id].y);
+                if (!otherPlayers[id]) {
+                    otherPlayers[id] = this.physics.add.sprite(players[id].x, players[id].y, 'player');
+                    otherPlayersNickTexts[id] = this.add.text(players[id].x, players[id].y - 20, players[id].nick, {
+                        fontSize: '16px',
+                        fill: '#fff',
+                    });
+                } else {
+                    otherPlayers[id].setPosition(players[id].x, players[id].y);
+                    otherPlayersNickTexts[id].setPosition(players[id].x, players[id].y - 20); // Обновляем позицию текста
+                }
             }
-        }
-        if (players[socket.id]) {
-            scoreText.setText('Счет: ' + players[socket.id].score);
         }
     });
 
@@ -73,28 +92,29 @@ function create() {
         this.physics.add.overlap(player, rubiesGroup, collectRuby, null, this);
     });
 
-    // Обработка старта таймера отсчета
+    // Обработка окончания игры
+    socket.on('gameOver', (message) => {
+        alert(message);
+        game.scene.pause();
+    });
+
+    // Обработка объявления победителя
+    socket.on('announceWinner', (message) => {
+        alert(message);
+    });
+
     socket.on('startCountdown', () => {
         startCountdown(this);
     });
 
-    // Обработка разрешения движения
+// Обработка начала игры
     socket.on('startGame', () => {
         gameStarted = true; // Разрешаем движение
-    });
-
-    socket.on('gameOver', (winnerId) => {
-        if (winnerId === socket.id) {
-            alert('Поздравляем! Вы победили!');
-        } else {
-            alert(`Игрок ${winnerId} победил!`);
-        }
-        game.scene.pause();
     });
 }
 
 function update() {
-    if (!gameStarted) return; // Блокируем движение, если игра еще не началась
+    if (!gameStarted) return;
 
     if (cursors.left.isDown) {
         player.setVelocityX(-160);

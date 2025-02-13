@@ -7,6 +7,8 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
 
+const melonsCount = 39
+
 app.use(express.static('public'));
 
 let players = {};
@@ -15,11 +17,16 @@ let gameStarted = false; // Флаг для начала игры
 
 io.on('connection', async (socket) => {
     console.log('Новый игрок подключился: ' + socket.id);
+
+    // Генерируем случайный ник для игрока
+    const randomNick = `Player_${Math.floor(Math.random() * 1000)}`;
     players[socket.id] = {
         x: 400,
         y: 500,
         score: 0,
+        nick: randomNick, // Добавляем ник игрока
     };
+
     io.emit('players', players);
 
     // Проверяем, достаточно ли игроков для начала игры
@@ -45,12 +52,45 @@ io.on('connection', async (socket) => {
 
     socket.on('collectRuby', (rubyId) => {
         if (rubies[rubyId]) {
-            delete rubies[rubyId];
-            players[socket.id].score += 10;
-            io.emit('players', players); // Обновляем список игроков
-            io.emit('rubies', rubies); // Обновляем список рубинов
+            delete rubies[rubyId]; // Удаляем рубин
+            players[socket.id].score += 10; // Увеличиваем счет игрока
+
+            // Отправляем обновленный список рубинов и игроков
+            io.emit('players', players);
+            io.emit('rubies', rubies);
+    
+            // Проверяем, остались ли рубины
+            if (Object.keys(rubies).length === 0) {
+                const winnerIdByScore = findWinnerByScore(players); // Находим победителя по очкам
+                console.log(`Игрок ${winnerIdByScore} победил!`);
+    
+                // Отправляем разные сообщения игрокам
+                io.to(winnerIdByScore).emit('gameOver', 'Поздравляем! Вы победили!');
+                for (const playerId in players) {
+                    if (playerId !== winnerIdByScore) {
+                        io.to(playerId).emit('gameOver', 'Нерасстраивайтесь, получится в следующий раз!');
+                    }
+                }
+            } else {
+                // Отправляем обновленный список рубинов и игроков
+                io.emit('players', players);
+                io.emit('rubies', rubies);
+            }
         }
     });
+    
+    // Функция для определения победителя по очкам
+    function findWinnerByScore(players) {
+        let winnerId = null;
+        let maxScore = -Infinity;
+        for (const playerId in players) {
+            if (players[playerId].score > maxScore) {
+                maxScore = players[playerId].score;
+                winnerId = playerId;
+            }
+        }
+        return winnerId;
+    }
 
     socket.on('disconnect', () => {
         console.log('Игрок отключился: ' + socket.id);
@@ -62,27 +102,22 @@ io.on('connection', async (socket) => {
             io.emit('rubies', rubies); // Уведомляем клиентов об очистке рубинов
         }
     });
-
-    socket.on('playerWon', (winnerId) => {
-        console.log(`Игрок ${winnerId} собрал все рубины и победил!`);
-        io.emit('gameOver', winnerId);
-    });
 });
 
 function spawnRubies() {
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < melonsCount; i++) {
         const rubyId = uuidv4(); // Генерируем уникальный ID для рубина
         rubies[rubyId] = {
             id: rubyId,
             x: Math.floor(Math.random() * (750 - 50 + 1)) + 50, // Случайная позиция по X
-            y: Math.floor(Math.random() * (550 - 50 + 1)) + 50, // Случайная позиция по Y
+            y: Math.floor(Math.random() * (400 - 50 + 1)) + 50, // Случайная позиция по Y
         };
     }
     console.log('Сгенерированные рубины:', rubies);
 }
 
-server.listen(8000, () => {
-    console.log('Сервер запущен на http://localhost:8000');
+server.listen(8002, () => {
+    console.log('Сервер запущен на http://localhost:8001');
 });
 
 function sleep(ms) {
